@@ -26,6 +26,7 @@
       width: 100vw;
       height: 70vh;
       background: radial-gradient(ellipse at top, #0b1a30, #010101);
+      touch-action: none; /* prevent scrolling while tapping canvas */
     }
     #overlay {
       position: absolute;
@@ -138,6 +139,13 @@
       color: #ff7b72;
       text-shadow: 0 0 5px red;
     }
+    /* mobile hint */
+    #mobileHint {
+      color: #7aa9d9;
+      margin-top: 5px;
+      font-size: 14px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -147,6 +155,7 @@
     <div id="overlay"></div>
     <div id="countdownOverlay"></div>
   </div>
+  <div id="mobileHint">⬆️ tap TOP half = UP | tap BOTTOM half = DOWN ⬇️</div>
   <div id="leaderboard">
     <h2> LEADERBOARD </h2>
     <ul id="scoresList"></ul>
@@ -273,6 +282,10 @@
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight * 0.7;
+        // reposition ship on resize (keep relative Y)
+        if (ship) {
+          ship.y = Math.min(Math.max(ship.y, 20), canvas.height - ship.height - 20);
+        }
       }
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
@@ -328,7 +341,7 @@
       // planet (rare background)
       let planet = { x: -400, y: 100, size: 75 };
 
-      // ---- input ----
+      // ---- input (keyboard) ----
       window.addEventListener("keydown", (e) => {
         if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
           upPressed = true;
@@ -346,14 +359,81 @@
         }
       });
 
-      canvas.addEventListener("touchstart", (e) => {
+      // ---- MOBILE TOUCH CONTROLS (tap top/bottom half) ----
+      function handleTouchStart(e) {
+        e.preventDefault(); // prevent scrolling or zoom
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        if (!touch) return;
+
+        // Calculate touch Y relative to canvas
+        const touchY = touch.clientY - rect.top;
+        const halfHeight = canvas.height / 2;
+
+        if (touchY < halfHeight) {
+          // top half → move up
+          upPressed = true;
+          downPressed = false;
+        } else {
+          // bottom half → move down
+          downPressed = true;
+          upPressed = false;
+        }
+      }
+
+      function handleTouchEnd(e) {
         e.preventDefault();
-        upPressed = true; 
-        setTimeout(() => (upPressed = false), 150);
+        // release both on finger lift
+        upPressed = false;
+        downPressed = false;
+      }
+
+      function handleTouchMove(e) {
+        e.preventDefault(); // important to stop page scroll while touching canvas
+        // Optional: update direction if finger moves across halves
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        if (!touch) return;
+
+        const touchY = touch.clientY - rect.top;
+        const halfHeight = canvas.height / 2;
+
+        if (touchY < halfHeight) {
+          upPressed = true;
+          downPressed = false;
+        } else {
+          downPressed = true;
+          upPressed = false;
+        }
+      }
+
+      // attach touch listeners
+      canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+      canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+      canvas.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+      canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+      // also support simple click/tap for testing on non-touch devices (mouse click acts like top half)
+      canvas.addEventListener("mousedown", (e) => {
+        // only if not already using touch
+        const rect = canvas.getBoundingClientRect();
+        const mouseY = e.clientY - rect.top;
+        const halfHeight = canvas.height / 2;
+        if (mouseY < halfHeight) {
+          upPressed = true;
+          downPressed = false;
+        } else {
+          downPressed = true;
+          upPressed = false;
+        }
       });
-      canvas.addEventListener("click", () => {
-        upPressed = true;
-        setTimeout(() => (upPressed = false), 120);
+      canvas.addEventListener("mouseup", () => {
+        upPressed = false;
+        downPressed = false;
+      });
+      canvas.addEventListener("mouseleave", () => {
+        upPressed = false;
+        downPressed = false;
       });
 
       // ---- spawn asteroids with rotation + lateral bob ----
