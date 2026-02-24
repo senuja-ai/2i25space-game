@@ -1,39 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🪨 GRAY MATTER · 3 LIVES</title>
+  <title>🚀 2i ASTEROID </title>
   <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
     body {
       margin: 0;
       font-family: 'Courier New', monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #1a1a1a;  /* dark gray base */
-      color: #cccccc;
+      background: #0a0f1e;
+      color: #b0f0ff;
       overflow-x: hidden;
     }
     #gameContainer {
       position: relative;
-      border: 3px solid #5a5a5a;
-      background: #111111;
+      border: 3px solid #4a6fa5;
+      background: #03050a;
       margin-top: 0;
       width: 100%;
-      box-shadow: 0 0 30px #2e2e2e;
+      box-shadow: 0 0 30px #2a4c7c;
     }
     #gameCanvas {
       display: block;
       width: 100vw;
       height: 70vh;
-      background: radial-gradient(ellipse at top, #2b2b2b, #0a0a0a);
-      touch-action: none;  /* kill browser scroll/pinch on canvas */
+      background: radial-gradient(ellipse at top, #0b1a30, #010101);
     }
     #overlay {
       position: absolute;
@@ -41,10 +33,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(20,20,20,0.85);
-      color: #d4d4d4;
+      background: rgba(3,15,30,0.8);
+      color: #ffb87c;
       font-size: 36px;
-      text-shadow: 0 0 15px #aaa;
+      text-shadow: 0 0 15px cyan;
       visibility: hidden;
       text-align: center;
       backdrop-filter: blur(3px);
@@ -52,17 +44,17 @@
     #leaderboard {
       width: 100%;
       max-width: 800px;
-      border: 2px solid #5f5f5f;
+      border: 2px solid #2a5f8a;
       margin: 15px 0;
-      background: #222222;
-      color: #dddddd;
+      background: #0d1424;
+      color: #aad0ff;
       border-radius: 12px;
-      box-shadow: 0 0 20px #3a3a3a;
+      box-shadow: 0 0 20px #1e3a5f;
     }
     #leaderboard h2 {
       text-align: center;
       margin: 10px 0;
-      border-bottom: 2px dashed #6f6f6f;
+      border-bottom: 2px dashed #4f8bc9;
       padding-bottom: 6px;
       letter-spacing: 2px;
     }
@@ -75,18 +67,18 @@
       gap: 5px;
     }
     #scoresList li {
-      border: 1px solid #555;
+      border: 1px solid #2a4b77;
       margin: 2px;
       padding: 6px 4px;
       text-align: center;
       font-size: 15px;
-      background: #2c2c2c;
+      background: #101b2b;
       border-radius: 20px;
-      color: #e0e0e0;
+      color: #ceecff;
     }
     #scoresList li strong {
-      color: #f0f0f0;
-      text-shadow: 0 0 5px #9f9f9f;
+      color: #f5e56b;
+      text-shadow: 0 0 5px orange;
     }
     #countdownOverlay {
       position: absolute;
@@ -96,16 +88,16 @@
       justify-content: center;
       font-size: 120px;
       font-weight: bold;
-      color: #e6e6e6;
-      background: rgba(10,10,10,0.85);
+      color: #fff9d7;
+      background: rgba(0,10,30,0.8);
       z-index: 10;
       visibility: hidden;
-      text-shadow: 0 0 30px #ccc, 0 0 60px #888;
+      text-shadow: 0 0 30px cyan, 0 0 60px blue;
     }
     #nameOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.95);
+      background: rgba(0,0,20,0.9);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -113,19 +105,19 @@
       backdrop-filter: blur(6px);
     }
     #nameOverlay div {
-      background: #2b2b2b;
+      background: #121f30;
       padding: 30px;
-      border: 3px solid #7f7f7f;
+      border: 3px solid #3b82c4;
       border-radius: 40px;
       text-align: center;
-      color: #ececec;
-      box-shadow: 0 0 50px #5f5f5f;
+      color: #ddf2ff;
+      box-shadow: 0 0 50px #0066ff;
     }
     #nameOverlay input {
       padding: 12px;
       font-size: 18px;
-      background: #3a3a3a;
-      border: 2px solid #9a9a9a;
+      background: #1f2e42;
+      border: 2px solid #0af;
       color: white;
       border-radius: 40px;
       text-align: center;
@@ -135,74 +127,39 @@
       font-size: 20px;
       margin-top: 15px;
       cursor: pointer;
-      background: #3f3f3f;
-      border: 2px solid #a5a5a5;
+      background: #0a2a44;
+      border: 2px solid #3ea0ff;
       color: white;
       border-radius: 50px;
       font-weight: bold;
       letter-spacing: 1px;
     }
     #nameError {
-      color: #ff957c;
-    }
-    /* mobile friendly controls: big touch zone */
-    #mobileControls {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin: 10px 0 5px;
-    }
-    .ctrlBtn {
-      background: #3a3a3a;
-      border: 3px solid #7a7a7a;
-      color: white;
-      font-size: 36px;
-      width: 90px;
-      height: 90px;
-      border-radius: 60px;
-      box-shadow: 0 5px 0 #1f1f1f;
-      text-align: center;
-      line-height: 90px;
-      touch-action: manipulation;
-      cursor: pointer;
-      user-select: none;
-      transition: 0.05s linear;
-    }
-    .ctrlBtn:active {
-      transform: translateY(5px);
-      box-shadow: none;
-      background: #5a5a5a;
-    }
-    @media (hover: hover) {
-      .ctrlBtn { display: none; } /* hide buttons on desktop */
+      color: #ff7b72;
+      text-shadow: 0 0 5px red;
     }
   </style>
 </head>
 <body>
-  <h1>🪨 GRAY ASTEROIDS · 3 LIVES</h1>
+  <h1>🚀 2I ASTEROID Game · 3 LIVES</h1>
   <div id="gameContainer">
     <canvas id="gameCanvas" width="600" height="200"></canvas>
     <div id="overlay"></div>
     <div id="countdownOverlay"></div>
   </div>
-  <!-- mobile up/down buttons (visible only on touch) -->
-  <div id="mobileControls">
-    <div class="ctrlBtn" id="upBtn">⬆️</div>
-    <div class="ctrlBtn" id="downBtn">⬇️</div>
-  </div>
   <div id="leaderboard">
-    <h2> LEADERBOARD (GRAY SHADES)</h2>
+    <h2> LEADERBOARD </h2>
     <ul id="scoresList"></ul>
   </div>
 
-  <!-- Name overlay -->
+  <!-- Name overlay (same class list) -->
   <div id="nameOverlay">
     <div>
-      <h2>⚫ Enter first name (lectio or nick)</h2>
+      <h2>🚀 Enter your first name (as on lectio, or try nicknames)</h2>
       <input id="nameInput" type="text" placeholder="e.g. Alex">
       <br>
       <button id="startBtn">BEGIN VOYAGE</button>
-      <p id="nameError" style="color: #ff957c; display: none;">Name not in 2i list. Try again.</p>
+      <p id="nameError" style="color: #ffa07a; display: none;">Name not found. Try again.</p>
     </div>
   </div>
 
@@ -210,11 +167,12 @@
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <script>
     (function() {
-      // ---------- SUPABASE (unchanged) ----------
+      // ---------- SUPABASE ----------
       const SUPABASE_URL = "https://zijlhrauarmarrjnokzc.supabase.co";
       const SUPABASE_KEY = "sb_publishable_V659jwcaefq_VhGr9B0NIQ_8LcuiShD";
       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+      // same 2i names
       const names = [
         "Andrew","Ahmed","Aimen","Alexandra","Alvina","Anabelle","Anas","Aneeqa","Arta","Asya","Augus",
         "Ayeza","Aymen","Bodhit","Carolina","Daria","Emma","Paknine","Helin","Hussein","Iasmina",
@@ -226,6 +184,7 @@
 
       let playerName = "";
 
+      // name handling
       function handleNameSubmit() {
         const input = document.getElementById("nameInput").value.trim();
         const match = names.find(n => n.toLowerCase() === input.toLowerCase());
@@ -305,7 +264,7 @@
         .on("postgres_changes", { event: "*", schema: "public", table: "scores" }, () => updateLeaderboard())
         .subscribe();
 
-      // ---------- GAME SETUP (canvas, grays) ----------
+      // ---------- GAME SETUP ----------
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
       const overlay = document.getElementById("overlay");
@@ -314,67 +273,62 @@
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight * 0.7;
-        // reposition ship after resize (keep in bounds)
-        if (ship) {
-          ship.x = canvas.width - 100;
-          ship.y = Math.min(Math.max(ship.y, 20), canvas.height - ship.height - 20);
-        }
       }
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
 
-      // spaceship on RIGHT side, facing left (already flipped via canvas)
+      // spaceship on RIGHT side – using correct orientation (facing left)
       let ship = {
         x: canvas.width - 100,
         y: canvas.height / 2 - 30,
         width: 55,
         height: 55,
       };
-      const SHIP_SPEED = 5; // slightly faster
+      const SHIP_SPEED = 4;
       let upPressed = false, downPressed = false;
 
       // asteroids array
       let asteroids = [];
       let score = 0;
-      let lives = 3;
+      let lives = 3;                // <-- 3 lives
       let gameOver = false;
 
-      // stars in grayscale
+      // stars background (twinkling + moving slowly)
       let stars = [];
-      function initStars(count = 200) {
+      function initStars(count = 150) {
         for (let i = 0; i < count; i++) {
           stars.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            radius: Math.random() * 3 + 1,
-            speed: Math.random() * 0.8 + 0.3,
-            brightness: Math.random() * 0.8 + 0.2
+            radius: Math.random() * 2.5 + 0.8,
+            speed: Math.random() * 0.6 + 0.2,
+            brightness: Math.random() * 0.7 + 0.3
           });
         }
       }
       initStars();
 
-      // particles (gray/orange)
+      // particles (explosions / hit effect)
       let particles = [];
 
-      function spawnParticles(px, py, color = "#bbbbbb", count = 20) {
+      function spawnParticles(px, py, color = "#ffaa33", count = 15) {
         for (let i = 0; i < count; i++) {
           particles.push({
             x: px,
             y: py,
-            dx: (Math.random() - 0.5) * 10,
-            dy: (Math.random() - 0.5) * 10,
-            size: Math.random() * 14 + 4,
+            dx: (Math.random() - 0.5) * 8,
+            dy: (Math.random() - 0.5) * 8,
+            size: Math.random() * 10 + 3,
             color: color,
             life: 1.0
           });
         }
       }
 
-      // planet background (dull gray)
-      let planet = { x: -400, y: 150, size: 90 };
+      // planet (rare background)
+      let planet = { x: -400, y: 100, size: 75 };
 
-      // ---- INPUT (keyboard + mobile) ----
+      // ---- input ----
       window.addEventListener("keydown", (e) => {
         if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
           upPressed = true;
@@ -392,62 +346,37 @@
         }
       });
 
-      // mobile buttons
-      document.getElementById("upBtn").addEventListener("mousedown", (e) => { e.preventDefault(); upPressed = true; });
-      document.getElementById("upBtn").addEventListener("mouseup", () => { upPressed = false; });
-      document.getElementById("upBtn").addEventListener("mouseleave", () => { upPressed = false; });
-      document.getElementById("upBtn").addEventListener("touchstart", (e) => { e.preventDefault(); upPressed = true; });
-      document.getElementById("upBtn").addEventListener("touchend", () => { upPressed = false; });
-      document.getElementById("upBtn").addEventListener("touchcancel", () => { upPressed = false; });
-
-      document.getElementById("downBtn").addEventListener("mousedown", (e) => { e.preventDefault(); downPressed = true; });
-      document.getElementById("downBtn").addEventListener("mouseup", () => { downPressed = false; });
-      document.getElementById("downBtn").addEventListener("mouseleave", () => { downPressed = false; });
-      document.getElementById("downBtn").addEventListener("touchstart", (e) => { e.preventDefault(); downPressed = true; });
-      document.getElementById("downBtn").addEventListener("touchend", () => { downPressed = false; });
-      document.getElementById("downBtn").addEventListener("touchcancel", () => { downPressed = false; });
-
-      // also canvas tap as quick UP boost (fun)
       canvas.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        upPressed = true;
+        upPressed = true; 
         setTimeout(() => (upPressed = false), 150);
       });
-      canvas.addEventListener("mousedown", (e) => {
-        // for desktop click boost
+      canvas.addEventListener("click", () => {
         upPressed = true;
         setTimeout(() => (upPressed = false), 120);
       });
 
-      // ---- spawn asteroids: more, crazier, formations ----
+      // ---- spawn asteroids with rotation + lateral bob ----
       function spawnAsteroid() {
         if (gameOver) return;
-        const size = 35 + Math.floor(Math.random() * 60); // 35-95
+        const size = 40 + Math.floor(Math.random() * 45);
         const yPos = Math.random() * (canvas.height - size - 40) + 20;
-        // formation: sometimes spawn 2 or 3 in a cluster (25% chance)
-        const formationCount = Math.random() < 0.25 ? (Math.random() < 0.5 ? 2 : 3) : 1;
-        for (let f = 0; f < formationCount; f++) {
-          let offsetY = (f - (formationCount-1)/2) * (size * 0.6);
-          // avoid edges
-          let spawnY = Math.min(Math.max(yPos + offsetY, 15), canvas.height - size - 15);
-          asteroids.push({
-            x: -size - f * 30,  // staggered start
-            y: spawnY,
-            size: size,
-            angle: Math.random() * 6.28,
-            rotSpeed: (Math.random() * 0.25 + 0.06) * (Math.random() > 0.5 ? 1 : -1),
-            speed: 3.5 + Math.random() * 5.5, // 3.5-9
-            bobAmp: Math.random() * 2.2 + 0.8,
-            bobPhase: Math.random() * 20,
-            baseX: -size
-          });
-        }
-        // much faster respawn: between 400 and 1000 ms
-        const nextTime = 400 + Math.random() * 700;
+        asteroids.push({
+          x: -size,
+          y: yPos,
+          size: size,
+          angle: 0,
+          rotSpeed: (Math.random() * 0.15 + 0.04) * (Math.random() > 0.5 ? 1 : -1),
+          speed: 4 + Math.random() * 4,
+          bobAmp: Math.random() * 1.5 + 0.6,   // lateral shift amplitude
+          bobPhase: Math.random() * 10,
+          baseX: -size
+        });
+        const nextTime = 700 + Math.random() * 1400;
         setTimeout(spawnAsteroid, nextTime);
       }
 
-      // lose life
+      // game over handler (with lives)
       async function loseLife() {
         lives--;
         if (lives <= 0) {
@@ -463,21 +392,23 @@
           overlay.style.visibility = "visible";
           await saveScore(playerName, score);
         } else {
-          spawnParticles(ship.x + ship.width/2, ship.y + ship.height/2, "#cc8866", 35);
+          // flash / feedback for life lost (particle burst at ship)
+          spawnParticles(ship.x + ship.width/2, ship.y + ship.height/2, "#ff5555", 25);
         }
       }
 
-      // ---- update ----
+      // ---- drawing and updates ----
       function updateGame() {
         if (gameOver) return;
 
-        // move ship
+        // move ship (up/down)
         if (upPressed) ship.y -= SHIP_SPEED;
         if (downPressed) ship.y += SHIP_SPEED;
+        // boundaries
         if (ship.y < 20) ship.y = 20;
         if (ship.y + ship.height > canvas.height - 20) ship.y = canvas.height - ship.height - 20;
 
-        // stars
+        // move stars slowly to left
         stars.forEach(s => {
           s.x -= s.speed;
           if (s.x < 0) {
@@ -486,45 +417,49 @@
           }
         });
 
-        // planet drift
-        planet.x += 0.5;
-        if (planet.x > canvas.width + 500) {
-          planet.x = -600;
-          planet.y = 120 + Math.random() * 250;
-          planet.size = 70 + Math.random() * 120;
+        // planet movement
+        planet.x += 0.3;
+        if (planet.x > canvas.width + 400) {
+          planet.x = -500;
+          planet.y = 100 + Math.random() * 200;
+          planet.size = 80 + Math.random() * 100;
         }
 
-        // update asteroids — more erratic movement + extra craziness
+        // update asteroids: move right + lateral wobble based on angle
         for (let i = asteroids.length - 1; i >= 0; i--) {
           let a = asteroids[i];
           // base movement right
           a.x += a.speed;
-          // wild lateral wobble based on angle & sin
-          let lateralShift = Math.sin(a.angle * 1.8 + a.bobPhase) * a.bobAmp * 2.2;
-          a.y += lateralShift * 0.6 + Math.cos(a.angle * 0.9) * 0.9; // more chaos
+          // lateral sine shift using rotation angle (correlated)
+          let lateralShift = Math.sin(a.angle * 2 + a.bobPhase) * a.bobAmp * 1.8;
+          a.y += lateralShift * 0.4; // subtle lateral drift correlated to rotation
+
           a.angle += a.rotSpeed;
 
-          // collision (circle)
+          // collision detection (circle)
           const shipCenterX = ship.x + ship.width/2;
           const shipCenterY = ship.y + ship.height/2;
-          const shipR = ship.width/2.4;
+          const shipR = ship.width/2.5;
           const astCenterX = a.x + a.size/2;
           const astCenterY = a.y + a.size/2;
-          const astR = a.size/2.1;
+          const astR = a.size/2.2;
 
           const dx = shipCenterX - astCenterX;
           const dy = shipCenterY - astCenterY;
           const dist = Math.sqrt(dx*dx + dy*dy);
 
           if (dist < shipR + astR) {
+            // ASTEROID HIT: lose life, asteroid destroyed, particles
             loseLife();
-            spawnParticles(astCenterX, astCenterY, "#aa8866", 28);
+            spawnParticles(astCenterX, astCenterY, "#cc6600");
             asteroids.splice(i, 1);
+            // no score penalty, just life lost
             continue;
           }
 
-          // passed right edge => points
+          // asteroid passed left side of ship? (entirely to the right of screen edge)
           if (a.x - a.size > canvas.width) {
+            // passed safely => +10 points
             score += 10;
             asteroids.splice(i, 1);
             saveScore(playerName, score);
@@ -532,86 +467,90 @@
           }
         }
 
-        // particles
+        // particle updates
         for (let i = particles.length - 1; i >= 0; i--) {
           let p = particles[i];
           p.x += p.dx;
           p.y += p.dy;
-          p.size *= 0.95;
-          p.life -= 0.015;
-          if (p.size < 0.8 || p.life <= 0) particles.splice(i, 1);
+          p.size *= 0.96;
+          p.life -= 0.01;
+          if (p.size < 0.5 || p.life <= 0) {
+            particles.splice(i, 1);
+          }
         }
 
         requestAnimationFrame(updateGame);
       }
 
-      // draw everything in GRAY shades (monochrome + subtle)
+      // draw everything
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // radial gradient dark gray to black
+        // deep space gradient
         const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, canvas.width);
-        grad.addColorStop(0, '#1e1e1e');
-        grad.addColorStop(1, '#0a0a0a');
+        grad.addColorStop(0, '#050b18');
+        grad.addColorStop(1, '#011122');
         ctx.fillStyle = grad;
         ctx.fillRect(0,0,canvas.width,canvas.height);
 
-        // stars (grayish white)
+        // stars
         stars.forEach(s => {
           ctx.beginPath();
-          let bright = s.brightness * 0.9;
-          ctx.fillStyle = `rgba(220, 220, 220, ${bright})`;
+          ctx.fillStyle = `rgba(255, 240, 200, ${s.brightness})`;
           ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2);
           ctx.fill();
         });
 
-        // background planet (gray variations)
-        if (planet.x > -300 && planet.x < canvas.width + 300) {
-          ctx.fillStyle = '#6a6a6a';
+        // planet
+        if (planet.x > -200 && planet.x < canvas.width + 200) {
+          ctx.fillStyle = '#5d7a9c';
           ctx.beginPath();
           ctx.arc(planet.x, planet.y, planet.size*0.5, 0, 2*Math.PI);
           ctx.fill();
-          ctx.fillStyle = '#4f4f4f';
+          ctx.fillStyle = '#3a4f68';
           ctx.beginPath();
-          ctx.arc(planet.x-30, planet.y-20, planet.size*0.25, 0, 2*Math.PI);
+          ctx.arc(planet.x-30, planet.y-20, 30, 0, 2*Math.PI);
           ctx.fill();
-          ctx.fillStyle = '#3b3b3b';
+          ctx.fillStyle = '#b88a3b';
           ctx.beginPath();
-          ctx.arc(planet.x+45, planet.y+10, planet.size*0.18, 0, 2*Math.PI);
+          ctx.arc(planet.x+40, planet.y+10, 20, 0, 2*Math.PI);
           ctx.fill();
         }
 
-        // asteroids (all using rock emoji, but we can recolor)
+        // asteroids (rotated) – rock emoji
         asteroids.forEach(a => {
           ctx.save();
           ctx.translate(a.x + a.size/2, a.y + a.size/2);
           ctx.rotate(a.angle);
           ctx.font = `${a.size}px Arial`;
-          ctx.fillStyle = "#9b8a7a"; // grayish brown
+          ctx.fillStyle = "#aa8866";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("🪨", 0, 0);
           ctx.restore();
         });
 
-        // spaceship flipped rocket (gray/white)
+        // SPACESHIP – facing left (correct orientation) using emoji "🚀" points right, but we flip with scale?
+        // Better: Use a different symbol: "🛸" is symmetric, but we want classic: "🛰️" or "🚀" but facing left.
+        // Since "🚀" points right, we flip canvas.
         ctx.save();
         ctx.translate(ship.x + ship.width/2, ship.y + ship.height/2);
+        // Scale to face left (-1 on x)
         ctx.scale(-1, 1);
         ctx.font = `55px Arial`;
-        ctx.fillStyle = "#b0b0b0";
+        ctx.fillStyle = "#abdbff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("🚀", 0, 0);
         ctx.restore();
 
-        // lives & score (grays)
-        ctx.fillStyle = "#d9d9d9";
+        // lives indicator
+        ctx.fillStyle = "#ff5e6b";
         ctx.font = "28px 'Courier New'";
-        ctx.fillText(`LIVES: ${'🧿'.repeat(lives)}`, 30, 60);
-        ctx.fillStyle = "#bbbbbb";
+        ctx.fillText(`LIVES: ${'❤️'.repeat(lives)}`, 30, 60);
+        ctx.fillStyle = "#b4e6ff";
         ctx.fillText(`SCORE: ${score}`, 30, 100);
 
-        // particles (gray to white)
+        // particles
         particles.forEach(p => {
           ctx.fillStyle = p.color;
           ctx.beginPath();
@@ -638,22 +577,22 @@
             clearInterval(countdownInterval);
             countdownOverlay.style.visibility = "hidden";
             gameOver = false;
-            lives = 3;
+            lives = 3;                // fresh lives
             score = 0;
             asteroids = [];
             particles = [];
 
-            // start heavy asteroid spawn
+            // start game systems
             spawnAsteroid();
 
-            // survival bonus faster (every 3 sec)
+            // survival bonus every 4 sec
             setInterval(() => {
               if (!gameOver) {
                 score += 5;
                 saveScore(playerName, score);
                 updateLeaderboard();
               }
-            }, 3000);
+            }, 4000);
 
             updateGame();
             draw();
