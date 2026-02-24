@@ -330,18 +330,18 @@
 
       // ---- input ----
       window.addEventListener("keydown", (e) => {
-        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+        if (e.key === "ArrowUp") {
           upPressed = true;
           e.preventDefault();
-        } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+        } else if (e.key === "ArrowDown") {
           downPressed = true;
           e.preventDefault();
         }
       });
       window.addEventListener("keyup", (e) => {
-        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+        if (e.key === "ArrowUp") {
           upPressed = false;
-        } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+        } else if (e.key === "ArrowDown") {
           downPressed = false;
         }
       });
