@@ -1,1 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🚀 Space Dino: Asteroid Field</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #0a0f1e;
+      color: #b0f0ff;
+      overflow-x: hidden;
+    }
+    #gameContainer {
+      position: relative;
+      border: 3px solid #4a6fa5;
+      background: #03050a;
+      margin-top: 0;
+      width: 100%;
+      box-shadow: 0 0 30px #2a4c7c;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 70vh;
+      background: radial-gradient(ellipse at top, #0b1a30, #010101);
+    }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3,15,30,0.8);
+      color: #ffb87c;
+      font-size: 36px;
+      text-shadow: 0 0 15px cyan;
+      visibility: hidden;
+      text-align: center;
+      backdrop-filter: blur(3px);
+    }
+    #leaderboard {
+      width: 100%;
+      max-width: 800px;
+      border: 2px solid #2a5f8a;
+      margin: 15px 0;
+      background: #0d1424;
+      color: #aad0ff;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #1e3a5f;
+    }
+    #leaderboard h2 {
+      text-align: center;
+      margin: 10px 0;
+      border-bottom: 2px dashed #4f8bc9;
+      padding-bottom: 6px;
+      letter-spacing: 2px;
+    }
+    #scoresList {
+      list-style: none;
+      padding: 10px;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 5px;
+    }
+    #scoresList li {
+      border: 1px solid #2a4b77;
+      margin: 2px;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 15px;
+      background: #101b2b;
+      border-radius: 20px;
+      color: #ceecff;
+    }
+    #scoresList li strong {
+      color: #f5e56b;
+      text-shadow: 0 0 5px orange;
+    }
+    #countdownOverlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 120px;
+      font-weight: bold;
+      color: #fff9d7;
+      background: rgba(0,10,30,0.8);
+      z-index: 10;
+      visibility: hidden;
+      text-shadow: 0 0 30px cyan, 0 0 60px blue;
+    }
+    #nameOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,20,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(6px);
+    }
+    #nameOverlay div {
+      background: #121f30;
+      padding: 30px;
+      border: 3px solid #3b82c4;
+      border-radius: 40px;
+      text-align: center;
+      color: #ddf2ff;
+      box-shadow: 0 0 50px #0066ff;
+    }
+    #nameOverlay input {
+      padding: 12px;
+      font-size: 18px;
+      background: #1f2e42;
+      border: 2px solid #0af;
+      color: white;
+      border-radius: 40px;
+      text-align: center;
+    }
+    #nameOverlay button {
+      padding: 12px 30px;
+      font-size: 20px;
+      margin-top: 15px;
+      cursor: pointer;
+      background: #0a2a44;
+      border: 2px solid #3ea0ff;
+      color: white;
+      border-radius: 50px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    #nameError {
+      color: #ff7b72;
+      text-shadow: 0 0 5px red;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 ASTEROID SURVIVAL · 2I GALAXY</h1>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+    <div id="overlay"></div>
+    <div id="countdownOverlay"></div>
+  </div>
+  <div id="leaderboard">
+    <h2>⭐ LEADERBOARD ⭐</h2>
+    <ul id="scoresList"></ul>
+  </div>
 
+  <!-- Name overlay (same class list) -->
+  <div id="nameOverlay">
+    <div>
+      <h2>🚀 Enter your first name (as on lectio)</h2>
+      <input id="nameInput" type="text" placeholder="e.g. Alex">
+      <br>
+      <button id="startBtn">BEGIN VOYAGE</button>
+      <p id="nameError" style="color: #ffa07a; display: none;">Name not found. Try again.</p>
+    </div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <script>
+    (function() {
+      // ---------- SUPABASE ----------
+      const SUPABASE_URL = "https://zijlhrauarmarrjnokzc.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_V659jwcaefq_VhGr9B0NIQ_8LcuiShD";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // same 2i names
+      const names = [
+        "Andrew","Ahmed","Aimen","Alexandra","Alvina","Anabelle","Anas","Aneeqa","Arta","Asya","Augus",
+        "Ayeza","Aymen","Bodhit","Carolina","Daria","Emma","Fatima","Helin","Hussein","Iasmina",
+        "Jannatul","Jeet","Jonas","Karina","Karl","Khaliil","Kiarad","Kruthika","Logan","Lohita",
+        "Louis","Luca","Laasya","Mahnaz","Milena","Milo","Navid","Parnian","Rinko","Raamish","Sam",
+        "Selini","Senuja","Artemis","Shaazil","Sofiia","Soha","Sorena","Spandana","Sunny","Taha",
+        "Tymur","Volodymyr","Wania","Zakariya","Zidane","Zoha"
+      ];
+
+      let playerName = "";
+
+      // name handling
+      function handleNameSubmit() {
+        const input = document.getElementById("nameInput").value.trim();
+        const match = names.find(n => n.toLowerCase() === input.toLowerCase());
+
+        if (match) {
+          playerName = match;
+          document.getElementById("nameOverlay").style.display = "none";
+          startCountdown();
+        } else {
+          document.getElementById("nameError").style.display = "block";
+        }
+      }
+
+      document.getElementById("startBtn").addEventListener("click", handleNameSubmit);
+      document.getElementById("nameInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleNameSubmit();
+      });
+
+      // ---------- SCORE SAVE ----------
+      async function saveScore(name, score) {
+        const { data, error: fetchError } = await supabaseClient
+          .from("scores")
+          .select("score")
+          .eq("player", name)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          console.error("fetch error", fetchError);
+          return;
+        }
+
+        const currentScore = data ? data.score : 0;
+        if (score > currentScore) {
+          await supabaseClient
+            .from("scores")
+            .upsert([{ player: name, score }], { onConflict: ["player"] });
+        }
+      }
+
+      async function initializeScores() {
+        for (const name of names) {
+          const { data } = await supabaseClient
+            .from("scores")
+            .select("*")
+            .eq("player", name)
+            .limit(1);
+          if (!data || data.length === 0) {
+            await supabaseClient.from("scores").insert([{ player: name, score: 0 }]);
+          }
+        }
+      }
+      initializeScores();
+
+      async function fetchScores() {
+        const { data, error } = await supabaseClient
+          .from("scores")
+          .select("*")
+          .order("score", { ascending: false });
+        if (error) return [];
+        return data;
+      }
+
+      async function updateLeaderboard() {
+        const ul = document.getElementById("scoresList");
+        ul.innerHTML = "";
+        const scores = await fetchScores();
+        scores.forEach(({ player, score }) => {
+          const li = document.createElement("li");
+          li.innerHTML = player === playerName ? `<strong>${player}: ${score}</strong>` : `${player}: ${score}`;
+          ul.appendChild(li);
+        });
+      }
+      updateLeaderboard();
+
+      supabaseClient
+        .channel("leaderboard")
+        .on("postgres_changes", { event: "*", schema: "public", table: "scores" }, () => updateLeaderboard())
+        .subscribe();
+
+      // ---------- GAME SETUP ----------
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const overlay = document.getElementById("overlay");
+      const countdownOverlay = document.getElementById("countdownOverlay");
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.7;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      // spaceship on RIGHT side, only moves vertically
+      let ship = {
+        x: canvas.width - 100,
+        y: canvas.height / 2 - 30,
+        width: 50,
+        height: 50,
+        dy: 0
+      };
+      const SHIP_SPEED = 6;
+      let upPressed = false, downPressed = false;
+
+      // asteroids array
+      let asteroids = [];
+      let score = 0;
+      let gameOver = false;
+      let groundHeight = 30; // not used as ground, but for bottom reference
+
+      // stars background (twinkling + moving slowly)
+      let stars = [];
+      function initStars(count = 150) {
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2.5 + 0.8,
+            speed: Math.random() * 0.6 + 0.2,
+            brightness: Math.random() * 0.7 + 0.3
+          });
+        }
+      }
+      initStars();
+
+      // particles (laser / explosions)
+      let particles = [];
+
+      function spawnParticles(px, py, color = "#ffaa33") {
+        for (let i = 0; i < 12; i++) {
+          particles.push({
+            x: px,
+            y: py,
+            dx: (Math.random() - 0.5) * 7,
+            dy: (Math.random() - 0.5) * 7,
+            size: Math.random() * 8 + 4,
+            color: color,
+            life: 1.0
+          });
+        }
+      }
+
+      // planet (rare background object)
+      let planet = { x: -400, y: 100, size: 120, type: 0 };
+
+      // alien ship (appears randomly)
+      let alien = { active: false, x: -200, y: 200, width: 60, height: 30, laserTimer: 0 };
+
+      // ---- input ----
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+          upPressed = true;
+          e.preventDefault();
+        } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+          downPressed = true;
+          e.preventDefault();
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+          upPressed = false;
+        } else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+          downPressed = false;
+        }
+      });
+
+      // touch/click simulate up (but keep arrow)
+      canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        upPressed = true; // crude: up for touch
+        setTimeout(() => (upPressed = false), 200);
+      });
+      canvas.addEventListener("click", () => {
+        upPressed = true;
+        setTimeout(() => (upPressed = false), 150);
+      });
+
+      // ---- spawn asteroids with rotation ----
+      function spawnAsteroid() {
+        if (gameOver) return;
+        const size = 40 + Math.floor(Math.random() * 40);
+        const yPos = Math.random() * (canvas.height - size - 30) + 15;
+        asteroids.push({
+          x: -size,
+          y: yPos,
+          size: size,
+          angle: 0,
+          rotSpeed: (Math.random() * 0.1 + 0.03) * (Math.random() > 0.5 ? 1 : -1),
+          speed: 3 + Math.random() * 4
+        });
+        const nextTime = 800 + Math.random() * 1500;
+        setTimeout(spawnAsteroid, nextTime);
+      }
+
+      // alien flyby
+      function spawnAlien() {
+        if (gameOver || alien.active) return;
+        alien.active = true;
+        alien.x = -100;
+        alien.y = 70 + Math.random() * (canvas.height - 150);
+        alien.laserTimer = 0;
+        // auto remove after leaving screen
+      }
+
+      // periodically try to spawn alien
+      setInterval(() => {
+        if (!gameOver && !alien.active && Math.random() < 0.4) {
+          spawnAlien();
+        }
+      }, 7000);
+
+      // game over handler
+      async function endGame() {
+        if (gameOver) return;
+        gameOver = true;
+        const { data } = await supabaseClient
+          .from("scores")
+          .select("score")
+          .eq("player", playerName)
+          .single();
+
+        const bestScore = data ? data.score : score;
+        overlay.innerHTML = `💥 GAME OVER 💥<br>YOUR SCORE: ${score} | BEST: ${bestScore}<br>(RELOAD TO TRY AGAIN)`;
+        overlay.style.visibility = "visible";
+        await saveScore(playerName, score);
+      }
+
+      // ---- drawing and updates ----
+      function updateGame() {
+        if (gameOver) return;
+
+        // move ship (up/down)
+        if (upPressed) ship.y -= SHIP_SPEED;
+        if (downPressed) ship.y += SHIP_SPEED;
+        // boundaries
+        if (ship.y < 20) ship.y = 20;
+        if (ship.y + ship.height > canvas.height - 20) ship.y = canvas.height - ship.height - 20;
+
+        // move stars slowly to left (parallax)
+        stars.forEach(s => {
+          s.x -= s.speed;
+          if (s.x < 0) {
+            s.x = canvas.width;
+            s.y = Math.random() * canvas.height;
+          }
+        });
+
+        // planet movement (very slow)
+        planet.x += 0.3;
+        if (planet.x > canvas.width + 300) {
+          planet.x = -500;
+          planet.y = 100 + Math.random() * 200;
+          planet.size = 80 + Math.random() * 100;
+        }
+
+        // update asteroids: move right, rotate
+        for (let i = asteroids.length - 1; i >= 0; i--) {
+          let a = asteroids[i];
+          a.x += a.speed;
+          a.angle += a.rotSpeed;
+
+          // collision (AABB-ish with rotated? use circle approx)
+          const shipCircle = { x: ship.x + ship.width/2, y: ship.y + ship.height/2, r: ship.width/2.5 };
+          const astCircle = { x: a.x + a.size/2, y: a.y + a.size/2, r: a.size/2.2 };
+          const dx = shipCircle.x - astCircle.x;
+          const dy = shipCircle.y - astCircle.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < shipCircle.r + astCircle.r) {
+            // hit asteroid => minus 10, destroy asteroid, particles
+            score = Math.max(0, score - 10);
+            spawnParticles(a.x + a.size/2, a.y + a.size/2, "#ff8866");
+            asteroids.splice(i, 1);
+            saveScore(playerName, score);
+            updateLeaderboard();
+            continue;
+          }
+
+          // passed left side? (obstacle passed) => +10 points
+          if (a.x - a.size > ship.x + ship.width) {
+            score += 10;
+            asteroids.splice(i, 1);
+            saveScore(playerName, score);
+            updateLeaderboard();
+          }
+        }
+
+        // alien logic
+        if (alien.active) {
+          alien.x += 5.5; // flies to the right
+          alien.y += Math.sin(alien.x * 0.02) * 1.5; // wavy
+
+          // shoot laser occasionally
+          if (alien.laserTimer <= 0 && alien.x > 100 && alien.x < canvas.width - 150) {
+            // shoot laser from alien towards ship (visual particle + hit detection)
+            const laser = {
+              x: alien.x + 20,
+              y: alien.y + 15,
+              vx: 10,
+              vy: (ship.y + ship.height/2 - (alien.y+15)) * 0.05,
+              active: true
+            };
+            // check hit instantly (simple)
+            const laserEndX = laser.x + 50;
+            const laserEndY = laser.y + laser.vy*5;
+            // ship rect approx
+            if (laserEndX > ship.x && laserEndX < ship.x+ship.width &&
+                laserEndY > ship.y && laserEndY < ship.y+ship.height) {
+              score = Math.max(0, score - 10);
+              spawnParticles(ship.x+ship.width/2, ship.y+ship.height/2, "#ff0000");
+              saveScore(playerName, score);
+              updateLeaderboard();
+            } else {
+              // spawn laser particles anyway
+              for (let i=0;i<5;i++) {
+                particles.push({ x: laser.x, y: laser.y, dx: laser.vx+ (Math.random()-0.5)*3, dy: laser.vy+(Math.random()-0.5)*2, size: 5, color: "#ff5555", life: 0.8 });
+              }
+            }
+            alien.laserTimer = 30; // frames cooldown
+          } else {
+            alien.laserTimer--;
+          }
+
+          // remove if off screen right
+          if (alien.x > canvas.width + 200) {
+            alien.active = false;
+          }
+        }
+
+        // update particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          let p = particles[i];
+          p.x += p.dx;
+          p.y += p.dy;
+          p.size *= 0.96;
+          p.life -= 0.01;
+          if (p.size < 0.5 || p.life <= 0) {
+            particles.splice(i, 1);
+          }
+        }
+
+        requestAnimationFrame(updateGame);
+      }
+
+      // draw everything
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // deep space gradient
+        const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, canvas.width);
+        grad.addColorStop(0, '#050b18');
+        grad.addColorStop(1, '#011122');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        // stars
+        stars.forEach(s => {
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 240, 200, ${s.brightness})`;
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2);
+          ctx.fill();
+        });
+
+        // planet (rare)
+        if (planet.x > -200 && planet.x < canvas.width + 200) {
+          ctx.fillStyle = '#5d7a9c';
+          ctx.beginPath();
+          ctx.arc(planet.x, planet.y, planet.size*0.5, 0, 2*Math.PI);
+          ctx.fill();
+          ctx.fillStyle = '#3a4f68';
+          ctx.beginPath();
+          ctx.arc(planet.x-30, planet.y-20, 30, 0, 2*Math.PI);
+          ctx.fill();
+          ctx.fillStyle = '#b88a3b';
+          ctx.beginPath();
+          ctx.arc(planet.x+40, planet.y+10, 20, 0, 2*Math.PI);
+          ctx.fill();
+        }
+
+        // asteroids (rotated)
+        asteroids.forEach(a => {
+          ctx.save();
+          ctx.translate(a.x + a.size/2, a.y + a.size/2);
+          ctx.rotate(a.angle);
+          ctx.font = `${a.size}px Arial`;
+          ctx.fillStyle = "#aa8866";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("🪨", 0, 0);
+          ctx.restore();
+        });
+
+        // alien ship
+        if (alien.active) {
+          ctx.font = "50px Arial";
+          ctx.fillStyle = "#ddaaff";
+          ctx.fillText("🛸", alien.x, alien.y);
+          // laser glow
+          if (alien.laserTimer % 10 > 3) {
+            ctx.beginPath();
+            ctx.strokeStyle = "#ff5555";
+            ctx.lineWidth = 3;
+            ctx.moveTo(alien.x+30, alien.y+15);
+            ctx.lineTo(alien.x+100, alien.y+15 + (ship.y - alien.y)*0.3);
+            ctx.stroke();
+          }
+        }
+
+        // spaceship
+        ctx.font = "55px Arial";
+        ctx.fillStyle = "#abdbff";
+        ctx.fillText("🚀", ship.x, ship.y+45);
+
+        // particles
+        particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, 2*Math.PI);
+          ctx.fill();
+        });
+
+        // UI
+        ctx.fillStyle = "#b4e6ff";
+        ctx.font = "28px 'Courier New', monospace";
+        ctx.fillText(`SCORE: ${score}`, 30, 60);
+        ctx.fillText(`⚡`, ship.x-10, ship.y-10);
+
+        if (!gameOver) requestAnimationFrame(draw);
+      }
+
+      // countdown + start
+      function startCountdown() {
+        let count = 3;
+        countdownOverlay.style.visibility = "visible";
+        countdownOverlay.textContent = count;
+
+        let countdownInterval = setInterval(() => {
+          count--;
+          if (count > 0) {
+            countdownOverlay.textContent = count;
+          } else if (count === 0) {
+            countdownOverlay.textContent = "GO!";
+          } else {
+            clearInterval(countdownInterval);
+            countdownOverlay.style.visibility = "hidden";
+            gameOver = false;
+
+            // start game systems
+            spawnAsteroid();
+
+            // periodic score bonus for survival (like original)
+            setInterval(() => {
+              if (!gameOver) {
+                score += 5; // survival bonus
+                saveScore(playerName, score);
+                updateLeaderboard();
+              }
+            }, 4000);
+
+            updateGame();
+            draw();
+          }
+        }, 800);
+      }
+
+      // stop game if gameOver triggers
+      window.endGame = endGame; // debug
+    })();
+  </script>
+</body>
+</html>
