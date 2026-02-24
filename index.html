@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>🚀 2i ASTEROID</title>
+  <title>🚀 2i ASTEROID </title>
   <style>
     body {
       margin: 0;
@@ -26,7 +26,6 @@
       width: 100vw;
       height: 70vh;
       background: radial-gradient(ellipse at top, #0b1a30, #010101);
-      touch-action: none;
     }
     #overlay {
       position: absolute;
@@ -139,12 +138,6 @@
       color: #ff7b72;
       text-shadow: 0 0 5px red;
     }
-    #mobileHint {
-      color: #7aa9d9;
-      margin-top: 5px;
-      font-size: 14px;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -154,28 +147,32 @@
     <div id="overlay"></div>
     <div id="countdownOverlay"></div>
   </div>
-  <div id="mobileHint">⬆️ tap TOP half = UP | tap BOTTOM half = DOWN ⬇️</div>
   <div id="leaderboard">
     <h2> LEADERBOARD </h2>
     <ul id="scoresList"></ul>
   </div>
 
-  <!-- Name overlay -->
+  <!-- Name overlay (same class list) -->
   <div id="nameOverlay">
     <div>
-      <h2>🚀 Enter your first name</h2>
-      <input id="nameInput" type="text" placeholder="e.g. Alex" value="Alex">
+      <h2>🚀 Enter your first name (as on lectio, or try nicknames)</h2>
+      <input id="nameInput" type="text" placeholder="e.g. Alex">
       <br>
       <button id="startBtn">BEGIN VOYAGE</button>
       <p id="nameError" style="color: #ffa07a; display: none;">Name not found. Try again.</p>
     </div>
   </div>
 
+  <!-- Supabase SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <script>
     (function() {
-      // ---------- LOCAL STORAGE SCORES (no Supabase) ----------
-      // Using localStorage instead of Supabase for reliability
-      
+      // ---------- SUPABASE ----------
+      const SUPABASE_URL = "https://zijlhrauarmarrjnokzc.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_V659jwcaefq_VhGr9B0NIQ_8LcuiShD";
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // same 2i names
       const names = [
         "Andrew","Ahmed","Aimen","Alexandra","Alvina","Anabelle","Anas","Aneeqa","Arta","Asya","Augus",
         "Ayeza","Aymen","Bodhit","Carolina","Daria","Emma","Paknine","Helin","Hussein","Iasmina",
@@ -186,56 +183,10 @@
       ];
 
       let playerName = "";
-      let scores = {};
 
-      // Initialize scores from localStorage
-      function initScores() {
-        const saved = localStorage.getItem('asteroidScores');
-        if (saved) {
-          scores = JSON.parse(saved);
-        } else {
-          // Initialize all names with 0
-          names.forEach(name => {
-            scores[name] = 0;
-          });
-          localStorage.setItem('asteroidScores', JSON.stringify(scores));
-        }
-      }
-      initScores();
-
-      function saveScore(name, score) {
-        if (scores[name] < score) {
-          scores[name] = score;
-          localStorage.setItem('asteroidScores', JSON.stringify(scores));
-          updateLeaderboard();
-        }
-      }
-
-      function updateLeaderboard() {
-        const ul = document.getElementById("scoresList");
-        ul.innerHTML = "";
-        
-        // Sort scores
-        const sorted = Object.entries(scores)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 30); // Show top 30
-        
-        sorted.forEach(([player, score]) => {
-          const li = document.createElement("li");
-          if (player === playerName) {
-            li.innerHTML = `<strong>${player}: ${score}</strong>`;
-          } else {
-            li.innerHTML = `${player}: ${score}`;
-          }
-          ul.appendChild(li);
-        });
-      }
-      updateLeaderboard();
-
-      // Name handling
+      // name handling
       function handleNameSubmit() {
         const input = document.getElementById("nameInput").value.trim();
-        // Case insensitive match
         const match = names.find(n => n.toLowerCase() === input.toLowerCase());
 
         if (match) {
@@ -252,6 +203,67 @@
         if (e.key === "Enter") handleNameSubmit();
       });
 
+      // ---------- SCORE SAVE ----------
+      async function saveScore(name, score) {
+        const { data, error: fetchError } = await supabaseClient
+          .from("scores")
+          .select("score")
+          .eq("player", name)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          console.error("fetch error", fetchError);
+          return;
+        }
+
+        const currentScore = data ? data.score : 0;
+        if (score > currentScore) {
+          await supabaseClient
+            .from("scores")
+            .upsert([{ player: name, score }], { onConflict: ["player"] });
+        }
+      }
+
+      async function initializeScores() {
+        for (const name of names) {
+          const { data } = await supabaseClient
+            .from("scores")
+            .select("*")
+            .eq("player", name)
+            .limit(1);
+          if (!data || data.length === 0) {
+            await supabaseClient.from("scores").insert([{ player: name, score: 0 }]);
+          }
+        }
+      }
+      initializeScores();
+
+      async function fetchScores() {
+        const { data, error } = await supabaseClient
+          .from("scores")
+          .select("*")
+          .order("score", { ascending: false });
+        if (error) return [];
+        return data;
+      }
+
+      async function updateLeaderboard() {
+        const ul = document.getElementById("scoresList");
+        ul.innerHTML = "";
+        const scores = await fetchScores();
+        scores.forEach(({ player, score }) => {
+          const li = document.createElement("li");
+          li.innerHTML = player === playerName ? `<strong>${player}: ${score}</strong>` : `${player}: ${score}`;
+          ul.appendChild(li);
+        });
+      }
+      updateLeaderboard();
+
+      supabaseClient
+        .channel("leaderboard")
+        .on("postgres_changes", { event: "*", schema: "public", table: "scores" }, () => updateLeaderboard())
+        .subscribe();
+
       // ---------- GAME SETUP ----------
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
@@ -261,35 +273,29 @@
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight * 0.7;
-        if (ship) {
-          ship.x = canvas.width - 100;
-          ship.y = Math.min(Math.max(ship.y, 20), canvas.height - ship.height - 20);
-        }
       }
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
 
-      // Game variables
+      // spaceship on RIGHT side – using correct orientation (facing left)
       let ship = {
         x: canvas.width - 100,
         y: canvas.height / 2 - 30,
         width: 55,
         height: 55,
       };
-      const SHIP_SPEED = 5;
+      const SHIP_SPEED = 4;
       let upPressed = false, downPressed = false;
+
+      // asteroids array
       let asteroids = [];
       let score = 0;
-      let lives = 3;
+      let lives = 3;                // <-- 3 lives
       let gameOver = false;
-      let gameActive = false;
-      let particles = [];
-      let stars = [];
-      let planet = { x: -400, y: 100, size: 75 };
-      let animationFrame;
 
-      // Initialize stars
-      function initStars(count = 100) {
+      // stars background (twinkling + moving slowly)
+      let stars = [];
+      function initStars(count = 150) {
         for (let i = 0; i < count; i++) {
           stars.push({
             x: Math.random() * canvas.width,
@@ -302,7 +308,9 @@
       }
       initStars();
 
-      // Particle system
+      // particles (explosions / hit effect)
+      let particles = [];
+
       function spawnParticles(px, py, color = "#ffaa33", count = 15) {
         for (let i = 0; i < count; i++) {
           particles.push({
@@ -317,9 +325,11 @@
         }
       }
 
-      // Controls
+      // planet (rare background)
+      let planet = { x: -400, y: 100, size: 75 };
+
+      // ---- input ----
       window.addEventListener("keydown", (e) => {
-        if (!gameActive) return;
         if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
           upPressed = true;
           e.preventDefault();
@@ -328,7 +338,6 @@
           e.preventDefault();
         }
       });
-      
       window.addEventListener("keyup", (e) => {
         if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
           upPressed = false;
@@ -337,126 +346,69 @@
         }
       });
 
-      // Touch controls
-      function handleTouchStart(e) {
+      canvas.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        if (!gameActive) return;
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        if (!touch) return;
-
-        const touchY = touch.clientY - rect.top;
-        const halfHeight = canvas.height / 2;
-
-        if (touchY < halfHeight) {
-          upPressed = true;
-          downPressed = false;
-        } else {
-          downPressed = true;
-          upPressed = false;
-        }
-      }
-
-      function handleTouchEnd(e) {
-        e.preventDefault();
-        upPressed = false;
-        downPressed = false;
-      }
-
-      function handleTouchMove(e) {
-        e.preventDefault();
-        if (!gameActive) return;
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        if (!touch) return;
-
-        const touchY = touch.clientY - rect.top;
-        const halfHeight = canvas.height / 2;
-
-        if (touchY < halfHeight) {
-          upPressed = true;
-          downPressed = false;
-        } else {
-          downPressed = true;
-          upPressed = false;
-        }
-      }
-
-      canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
-      canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
-      canvas.addEventListener("touchcancel", handleTouchEnd, { passive: false });
-      canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
-
-      // Mouse controls
-      canvas.addEventListener("mousedown", (e) => {
-        if (!gameActive) return;
-        const rect = canvas.getBoundingClientRect();
-        const mouseY = e.clientY - rect.top;
-        const halfHeight = canvas.height / 2;
-        if (mouseY < halfHeight) {
-          upPressed = true;
-          downPressed = false;
-        } else {
-          downPressed = true;
-          upPressed = false;
-        }
+        upPressed = true; 
+        setTimeout(() => (upPressed = false), 150);
       });
-      
-      canvas.addEventListener("mouseup", () => {
-        upPressed = false;
-        downPressed = false;
-      });
-      
-      canvas.addEventListener("mouseleave", () => {
-        upPressed = false;
-        downPressed = false;
+      canvas.addEventListener("click", () => {
+        upPressed = true;
+        setTimeout(() => (upPressed = false), 120);
       });
 
-      // Spawn asteroids
+      // ---- spawn asteroids with rotation + lateral bob ----
       function spawnAsteroid() {
-        if (!gameActive || gameOver) return;
-        
+        if (gameOver) return;
         const size = 40 + Math.floor(Math.random() * 45);
         const yPos = Math.random() * (canvas.height - size - 40) + 20;
-        
         asteroids.push({
           x: -size,
           y: yPos,
           size: size,
           angle: 0,
           rotSpeed: (Math.random() * 0.15 + 0.04) * (Math.random() > 0.5 ? 1 : -1),
-          speed: 2 + Math.random() * 3,
-          bobAmp: Math.random() * 1.5 + 0.6,
-          bobPhase: Math.random() * 10
+          speed: 10 + Math.random() * 4,
+          bobAmp: Math.random() * 1.5 + 0.6,   // lateral shift amplitude
+          bobPhase: Math.random() * 10,
+          baseX: -size
         });
-        
-        setTimeout(spawnAsteroid, 800 + Math.random() * 1200);
+        const nextTime = 700 + Math.random() * 1400;
+        setTimeout(spawnAsteroid, nextTime);
       }
 
-      // Lose life
+      // game over handler (with lives)
       async function loseLife() {
         lives--;
         if (lives <= 0) {
           gameOver = true;
-          gameActive = false;
-          overlay.innerHTML = `💥 GAME OVER 💥<br>YOUR SCORE: ${score}<br>(RELOAD TO TRY AGAIN)`;
+          const { data } = await supabaseClient
+            .from("scores")
+            .select("score")
+            .eq("player", playerName)
+            .single();
+
+          const bestScore = data ? data.score : score;
+          overlay.innerHTML = `💥 GAME OVER 💥<br>YOUR SCORE: ${score} | BEST: ${bestScore}<br>(RELOAD TO TRY AGAIN)`;
           overlay.style.visibility = "visible";
-          saveScore(playerName, score);
+          await saveScore(playerName, score);
         } else {
+          // flash / feedback for life lost (particle burst at ship)
           spawnParticles(ship.x + ship.width/2, ship.y + ship.height/2, "#ff5555", 25);
         }
       }
 
-      // Game update loop
+      // ---- drawing and updates ----
       function updateGame() {
-        if (!gameActive) return;
+        if (gameOver) return;
 
-        // Move ship
+        // move ship (up/down)
         if (upPressed) ship.y -= SHIP_SPEED;
         if (downPressed) ship.y += SHIP_SPEED;
-        ship.y = Math.max(20, Math.min(canvas.height - ship.height - 20, ship.y));
+        // boundaries
+        if (ship.y < 20) ship.y = 20;
+        if (ship.y + ship.height > canvas.height - 20) ship.y = canvas.height - ship.height - 20;
 
-        // Move stars
+        // move stars slowly to left
         stars.forEach(s => {
           s.x -= s.speed;
           if (s.x < 0) {
@@ -465,7 +417,7 @@
           }
         });
 
-        // Move planet
+        // planet movement
         planet.x += 0.3;
         if (planet.x > canvas.width + 400) {
           planet.x = -500;
@@ -473,16 +425,18 @@
           planet.size = 80 + Math.random() * 100;
         }
 
-        // Update asteroids
+        // update asteroids: move right + lateral wobble based on angle
         for (let i = asteroids.length - 1; i >= 0; i--) {
           let a = asteroids[i];
+          // base movement right
           a.x += a.speed;
-          
+          // lateral sine shift using rotation angle (correlated)
           let lateralShift = Math.sin(a.angle * 2 + a.bobPhase) * a.bobAmp * 1.8;
-          a.y += lateralShift * 0.4;
+          a.y += lateralShift * 0.4; // subtle lateral drift correlated to rotation
+
           a.angle += a.rotSpeed;
 
-          // Collision detection
+          // collision detection (circle)
           const shipCenterX = ship.x + ship.width/2;
           const shipCenterY = ship.y + ship.height/2;
           const shipR = ship.width/2.5;
@@ -495,20 +449,25 @@
           const dist = Math.sqrt(dx*dx + dy*dy);
 
           if (dist < shipR + astR) {
+            // ASTEROID HIT: lose life, asteroid destroyed, particles
             loseLife();
             spawnParticles(astCenterX, astCenterY, "#cc6600");
             asteroids.splice(i, 1);
+            // no score penalty, just life lost
             continue;
           }
 
-          // Passed safely
+          // asteroid passed left side of ship? (entirely to the right of screen edge)
           if (a.x - a.size > canvas.width) {
+            // passed safely => +10 points
             score += 10;
             asteroids.splice(i, 1);
+            saveScore(playerName, score);
+            updateLeaderboard();
           }
         }
 
-        // Update particles
+        // particle updates
         for (let i = particles.length - 1; i >= 0; i--) {
           let p = particles[i];
           p.x += p.dx;
@@ -519,20 +478,21 @@
             particles.splice(i, 1);
           }
         }
+
+        requestAnimationFrame(updateGame);
       }
 
-      // Draw loop
+      // draw everything
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Space gradient
+        // deep space gradient
         const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, canvas.width);
         grad.addColorStop(0, '#050b18');
         grad.addColorStop(1, '#011122');
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0,0,canvas.width,canvas.height);
 
-        // Stars
+        // stars
         stars.forEach(s => {
           ctx.beginPath();
           ctx.fillStyle = `rgba(255, 240, 200, ${s.brightness})`;
@@ -540,7 +500,7 @@
           ctx.fill();
         });
 
-        // Planet
+        // planet
         if (planet.x > -200 && planet.x < canvas.width + 200) {
           ctx.fillStyle = '#5d7a9c';
           ctx.beginPath();
@@ -556,7 +516,7 @@
           ctx.fill();
         }
 
-        // Asteroids
+        // asteroids (rotated) – rock emoji
         asteroids.forEach(a => {
           ctx.save();
           ctx.translate(a.x + a.size/2, a.y + a.size/2);
@@ -569,9 +529,12 @@
           ctx.restore();
         });
 
-        // Ship
+        // SPACESHIP – facing left (correct orientation) using emoji "🚀" points right, but we flip with scale?
+        // Better: Use a different symbol: "🛸" is symmetric, but we want classic: "🛰️" or "🚀" but facing left.
+        // Since "🚀" points right, we flip canvas.
         ctx.save();
         ctx.translate(ship.x + ship.width/2, ship.y + ship.height/2);
+        // Scale to face left (-1 on x)
         ctx.scale(-1, 1);
         ctx.font = `55px Arial`;
         ctx.fillStyle = "#abdbff";
@@ -580,30 +543,25 @@
         ctx.fillText("🚀", 0, 0);
         ctx.restore();
 
-        // UI
+        // lives indicator
         ctx.fillStyle = "#ff5e6b";
         ctx.font = "28px 'Courier New'";
         ctx.fillText(`LIVES: ${'❤️'.repeat(lives)}`, 30, 60);
         ctx.fillStyle = "#b4e6ff";
         ctx.fillText(`SCORE: ${score}`, 30, 100);
 
-        // Particles
+        // particles
         particles.forEach(p => {
           ctx.fillStyle = p.color;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, 2*Math.PI);
           ctx.fill();
         });
+
+        if (!gameOver) requestAnimationFrame(draw);
       }
 
-      // Game loop
-      function gameLoop() {
-        updateGame();
-        draw();
-        animationFrame = requestAnimationFrame(gameLoop);
-      }
-
-      // Start countdown
+      // countdown + start
       function startCountdown() {
         let count = 3;
         countdownOverlay.style.visibility = "visible";
@@ -618,40 +576,30 @@
           } else {
             clearInterval(countdownInterval);
             countdownOverlay.style.visibility = "hidden";
-            
-            // Reset game
             gameOver = false;
-            gameActive = true;
-            lives = 3;
+            lives = 3;                // fresh lives
             score = 0;
             asteroids = [];
             particles = [];
-            ship.x = canvas.width - 100;
-            ship.y = canvas.height / 2 - 30;
-            upPressed = false;
-            downPressed = false;
-            
-            // Start spawning asteroids
+
+            // start game systems
             spawnAsteroid();
-            
-            // Start bonus points
+
+            // survival bonus every 4 sec
             setInterval(() => {
-              if (gameActive && !gameOver) {
+              if (!gameOver) {
                 score += 5;
+                saveScore(playerName, score);
+                updateLeaderboard();
               }
             }, 4000);
+
+            updateGame();
+            draw();
           }
         }, 800);
       }
 
-      // Start the game loop immediately
-      gameLoop();
-      
-      // Initial draw
-      draw();
-      
-      // Show something in the leaderboard initially
-      setTimeout(updateLeaderboard, 100);
     })();
   </script>
 </body>
