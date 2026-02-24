@@ -372,7 +372,7 @@
           bobPhase: Math.random() * 10,
           baseX: -size
         });
-        const nextTime = 200 + Math.random() * 500;
+        const nextTime = 400 + Math.random() * 500;
         setTimeout(spawnAsteroid, nextTime);
       }
 
@@ -421,7 +421,7 @@
         planet.x += 0.3;
         if (planet.x > canvas.width + 400) {
           planet.x = -500;
-          planet.y = 100 + Math.random() * 200;
+          planet.y = 100 + Math.random() * 500;
           planet.size = 80 + Math.random() * 100;
         }
 
